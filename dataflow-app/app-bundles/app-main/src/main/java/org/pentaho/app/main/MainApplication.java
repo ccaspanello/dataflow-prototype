@@ -1,5 +1,25 @@
+/**
+ *******************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ ******************************************************************************
+ */
 package org.pentaho.app.main;
 
+import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -13,13 +33,9 @@ import org.osgi.framework.BundleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.util.HashMap;
-
 /**
  * Main Application Entry Point
- *
+ * <p>
  * Created by ccaspanello on 6/11/18.
  */
 public class MainApplication {
@@ -32,7 +48,6 @@ public class MainApplication {
     this.bundleContext = bundleContext;
   }
 
-  @PostConstruct
   public void init() {
     LOG.info( "************************" );
     LOG.info( "Starting Application" );
@@ -42,7 +57,7 @@ public class MainApplication {
     ServerInfo serverInfo = bundleContext.getService( bundleContext.getServiceReference( ServerInfo.class ) );
     String[] args = serverInfo.getArgs();
 
-    LOG.info("Program Arguements: {}", args);
+    LOG.info( "Program Arguements: {}", args );
 
     // Parse Command Line Arguments and Do Stuff
     Options options = createOptions();
@@ -53,16 +68,16 @@ public class MainApplication {
       debug = cmd.hasOption( "d" );
       if ( cmd.hasOption( "h" ) ) {
         printHelp( options );
-      } else if ( cmd.hasOption( "k" ) ) {
+      } else {
         doCoolStuff();
       }
     } catch ( ParseException e ) {
       // Assume the user needs help if a parse error happens.
       LOG.error( "{}.  Please refer to the help documentation.", e.getLocalizedMessage() );
       printHelp( options );
-    } catch(Exception e){
-      LOG.error(" Unexpected error: {}", e);
-    }finally {
+    } catch ( Exception e ) {
+      LOG.error( " Unexpected error: {}", e );
+    } finally {
       // Kill Karaf application if debug flag is not set
       if ( !debug ) {
         kill();
@@ -70,7 +85,6 @@ public class MainApplication {
     }
   }
 
-  @PreDestroy
   public void destroy() {
     LOG.info( "************************" );
     LOG.info( "Stopping Application" );
@@ -78,7 +92,32 @@ public class MainApplication {
   }
 
   private void doCoolStuff() {
-    // TODO Do Cool Stuff Here !!
+
+    ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+    try {
+      Thread.currentThread().setContextClassLoader( this.getClass().getClassLoader() );
+
+      PipelineOptionsFactory.register( WordCountOptions.class );
+      String[] args = new String[] { "runner=DirectRunner" };
+      WordCountOptions options = PipelineOptionsFactory.fromArgs( args ).withValidation().as( WordCountOptions.class );
+
+      Pipeline p = Pipeline.create( options );
+
+      String input = "pom.xml";
+      String output = "wordcount";
+
+      LOG.info( "Define Pipeline" );
+      p.apply( TextIO.read().from( input ) )
+        .apply( TextIO.write().to( output ) );
+
+      LOG.info( "Running Pipeline" );
+      p.run().waitUntilFinish();
+      LOG.info( "Running complete" );
+
+    } finally {
+      Thread.currentThread().setContextClassLoader( tccl );
+    }
+
   }
 
   private void kill() {

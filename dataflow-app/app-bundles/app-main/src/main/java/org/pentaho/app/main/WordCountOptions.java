@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
+/**
  *******************************************************************************
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,24 +14,26 @@
  * limitations under the License.
  *
  ******************************************************************************
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <parent>
-    <artifactId>dataflow-app</artifactId>
-    <groupId>org.pentaho</groupId>
-    <version>1.0-SNAPSHOT</version>
-  </parent>
-  <modelVersion>4.0.0</modelVersion>
+ */
+package org.pentaho.app.main;
 
-  <artifactId>app-features</artifactId>
-  <packaging>pom</packaging>
-  <modules>
-    <module>app-api-feature</module>
-    <module>app-main-feature</module>
-    <module>app-karaf-support-feature</module>
-  </modules>
+import org.apache.beam.sdk.options.Default;
+import org.apache.beam.sdk.options.Description;
+import org.apache.beam.sdk.options.PipelineOptions;
 
+/**
+ * Created by ccaspanello on 6/11/18.
+ */
+public interface WordCountOptions extends PipelineOptions {
 
-</project>
+    @Description("Input")
+    @Default.String("gs://apache-beam-samples/shakespeare/kinglear.txt")
+    String getInputFile();
+    void setInputFile(String value);
+
+    @Description("Output")
+    @Default.String("testOutput")
+    String getOutput();
+    void setOutput(String value);
+
+}
